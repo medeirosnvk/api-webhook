@@ -31,10 +31,24 @@ app.post("/webhook", (req, res) => {
     };
 
     const request = https.request(options, (response) => {
-      console.log(`statusCode: ${response.statusCode}`);
+      console.log(`Status do servidor externo: ${response.statusCode}`);
 
       response.on("data", (d) => {
         process.stdout.write(d);
+      });
+
+      response.on("end", () => {
+        console.log("Resposta completa do servidor externo:", responseBody);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          res.status(200).json({ message: "Sucesso ao enviar os dados." });
+        } else {
+          console.error("Erro na resposta do servidor externo:", responseBody);
+          res.status(500).json({
+            error: "Erro na comunicação com o servidor externo",
+            details: responseBody,
+          });
+        }
       });
     });
 
