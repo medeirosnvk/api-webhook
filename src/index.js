@@ -38,9 +38,15 @@ app.post("/webhook", (req, res) => {
 
   checkWebhookAvailability((isAvailable) => {
     if (!isAvailable) {
+      console.error(
+        "Link 'cobrance.com.br/santander2/webhook_boleto.php' indisponível no momento."
+      );
       return res
         .status(503)
-        .json({ error: "Webhook indisponível no momento." });
+        .json({
+          error:
+            "Link 'cobrance.com.br/santander2/webhook_boleto.php' indisponível no momento.",
+        });
     }
 
     try {
