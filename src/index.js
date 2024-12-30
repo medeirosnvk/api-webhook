@@ -33,8 +33,20 @@ app.post("/webhook", (req, res) => {
     const request = https.request(options, (response) => {
       console.log(`statusCode: ${response.statusCode}`);
 
+      let responseBody = "";
       response.on("data", (d) => {
-        process.stdout.write(d);
+        responseBody += d;
+      });
+
+      response.on("end", () => {
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          res.status(200).json({ message: "Sucesso ao enviar os dados." });
+        } else {
+          res.status(response.statusCode).json({
+            error: "Erro na requisição ao endpoint externo",
+            details: responseBody,
+          });
+        }
       });
     });
 
@@ -58,5 +70,7 @@ app.post("/webhook", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Servidor HTTPS rodando em https://191.101.70.186:${port}`);
+  console.log(
+    `Servidor HTTPS rodando em https://santander.cobrance.online:${port}`
+  );
 });
