@@ -33,6 +33,8 @@ app.post("/webhook", (req, res) => {
     const request = https.request(options, (response) => {
       console.log(`Status do servidor externo: ${response.statusCode}`);
 
+      let responseBody = "";
+
       response.on("data", (d) => {
         process.stdout.write(d);
       });
