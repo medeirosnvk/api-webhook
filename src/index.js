@@ -21,7 +21,7 @@ app.post("/webhook", (req, res) => {
 
     const options = {
       hostname: "cobrance.com.br",
-      path: "/santander3/webhook_boleto.php",
+      path: "/santander2/webhook_boleto.php",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
