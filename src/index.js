@@ -33,20 +33,8 @@ app.post("/webhook", (req, res) => {
     const request = https.request(options, (response) => {
       console.log(`statusCode: ${response.statusCode}`);
 
-      let responseBody = "";
       response.on("data", (d) => {
-        responseBody += d;
-      });
-
-      response.on("end", () => {
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          res.status(200).json({ message: "Sucesso ao enviar os dados." });
-        } else {
-          res.status(response.statusCode).json({
-            error: "Erro na requisição ao endpoint externo",
-            details: responseBody,
-          });
-        }
+        process.stdout.write(d);
       });
     });
 
