@@ -26,34 +26,39 @@ app.post("/webhook", (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Content-Length": postData.length,
+        "Content-Length": Buffer.byteLength(postData),
       },
     };
 
     const request = https.request(options, (response) => {
-      console.log(`statusCode: ${response.statusCode}`);
+      let responseData = "";
 
-      response.on("data", (d) => {
-        process.stdout.write(d);
+      response.on("data", (chunk) => {
+        responseData += chunk;
+      });
+
+      response.on("end", () => {
+        console.log(`Resposta do servidor externo: ${responseData}`);
+        res.status(200).json({ message: "Dados enviados com sucesso" });
       });
     });
 
     request.on("error", (error) => {
       console.error(error);
-      res
-        .status(500)
-        .json({ error: "Erro ao enviar os dados para cobrance.com.br" });
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .json({ error: "Erro ao enviar os dados para cobrance.com.br" });
+      }
     });
 
     request.write(postData);
     request.end();
-
-    res.status(200).json();
   } catch (error) {
-    console.error("Erro ao enviar os dados para cobrance.com.br:", error);
-    res
-      .status(500)
-      .json({ error: "Erro ao enviar os dados para cobrance.com.br" });
+    console.error("Erro ao processar a requisição:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Erro ao processar a requisição" });
+    }
   }
 });
 
