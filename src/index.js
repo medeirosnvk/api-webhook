@@ -34,7 +34,7 @@ app.post("/webhook", (req, res) => {
   console.log(req.originalUrl);
   console.log(req.body);
 
-  saveLog(data);
+  // saveLog(data);
 
   try {
     const postData = JSON.stringify(data);
