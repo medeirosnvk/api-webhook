@@ -31,13 +31,11 @@ const saveLog = (data) => {
 app.post("/webhook", (req, res) => {
   const data = req.body;
 
-  console.log(req.originalUrl);
-  console.log(req.body);
-
   // saveLog(data);
 
   try {
     const postData = JSON.stringify(data);
+    console.log(postData);
 
     const options = {
       hostname: "cobrance.com.br",
@@ -64,6 +62,7 @@ app.post("/webhook", (req, res) => {
 
     request.on("error", (error) => {
       console.error(error);
+
       if (!res.headersSent) {
         res
           .status(500)
