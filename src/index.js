@@ -1,4 +1,4 @@
-const https = require("https");
+const http = require("http");
 const dotenv = require("dotenv");
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -47,7 +47,7 @@ app.post("/webhook", (req, res) => {
       },
     };
 
-    const request = https.request(options, (response) => {
+    const request = http.request(options, (response) => {
       let responseData = "";
 
       response.on("data", (chunk) => {
