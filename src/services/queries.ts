@@ -137,8 +137,8 @@ export const inserirHistorico = async (
     )
     VALUES (
       2144,
-      ?,
-      'BANCO SANTANDER INFORMA PAGAMENTO DO BOLETO Nº ?.',
+      CAST(? AS UNSIGNED),
+      'BANCO SANTANDER INFORMA PAGAMENTO DO BOLETO Nº ' + ? + '.',
       'WEBHOOK',
       curdate(),
       curtime(),
