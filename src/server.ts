@@ -98,10 +98,10 @@ app.post("/webhook", async (req: Request, res: Response) => {
       console.log("✏️ Novo webhook PIX atualizado no banco.");
     } else {
       const atualizarNovoWebhook = atualizarWebhook(participantCode);
-      console.log("✏️ Novo webhook atualizado no banco:", atualizarNovoWebhook);
+      console.log("✏️ Novo webhook atualizado no banco.");
     }
 
-    console.log("✅ Processamento do webhook concluído com sucesso.");
+    console.log("✅ Processamento do webhook concluído com sucesso!");
     return res.status(200).json({
       message: "Processamento do webhook concluído com sucesso.",
     });
