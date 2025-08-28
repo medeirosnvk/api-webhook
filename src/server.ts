@@ -71,7 +71,7 @@ app.post("/webhook", async (req: Request, res: Response) => {
         .json({ error: "Erro ao tentar inserir webhook no banco de dados." });
     }
 
-    console.log("✏️ Novo webhook inserido no banco:", inserirNovoWebhook);
+    console.log("✏️ Novo webhook inserido no banco.");
 
     const idpromessa = await buscarIdPromessa(idboleto);
 
@@ -86,22 +86,16 @@ app.post("/webhook", async (req: Request, res: Response) => {
     }
 
     const inserirNovoComprovante = await inserirComprovante(idpromessa);
-    console.log(
-      "✏️ Novo comprovante inserido no banco:",
-      inserirNovoComprovante
-    );
+    console.log("✏️ Novo comprovante inserido no banco.");
 
     const inserirNovoHistorico = await inserirHistorico(iddevedor, idboleto);
-    console.log("✏️ Novo historico inserido no banco:", inserirNovoHistorico);
+    console.log("✏️ Novo historico inserido no banco.");
 
     // NAO TEM idboleto NO PIX
 
     if (txIdPix === "PIX") {
       const atualizarNovoWebhookPix = atualizarWebhookPix(txId);
-      console.log(
-        "✏️ Novo webhook PIX atualizado no banco:",
-        atualizarNovoWebhookPix
-      );
+      console.log("✏️ Novo webhook PIX atualizado no banco.");
     } else {
       const atualizarNovoWebhook = atualizarWebhook(participantCode);
       console.log("✏️ Novo webhook atualizado no banco:", atualizarNovoWebhook);
