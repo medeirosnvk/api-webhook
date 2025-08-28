@@ -1,5 +1,5 @@
 import { WebhookSantander } from "../types/querieTypes";
-import { executeQueryNew } from "src/database/dbConfig";
+import { executeQueryNew } from "../database/dbConfig";
 
 export const inserirWebhook = async (
   data: WebhookSantander
