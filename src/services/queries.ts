@@ -106,7 +106,7 @@ export const inserirComprovante = async (
   idpromessa: number
 ): Promise<any[]> => {
   const query = `
-    INSERT ignore INTO comprovante_recebido 
+    INSERT ignore INTO comprovante_recebido (
       idpromessa,
       idresponsavel
     )
