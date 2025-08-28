@@ -1,5 +1,5 @@
 export interface WebhookSantander {
-  idboleto: string;
+  idboleto: number;
   txid: string;
   valor: number;
   horario: string;
@@ -23,8 +23,8 @@ export type SantanderPayment = {
   typeOfPersonAgreement: string;
   agreementDocument: string;
   bankNumber: string;
-  clientNumber: string;
-  participantCode: string;
+  clientNumber: number;
+  participantCode: number;
   txId: string;
   payerDocumentType: string;
   payerDocumentNumber: string;

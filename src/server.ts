@@ -8,6 +8,9 @@ import { LogEntry, SantanderPayment } from "./types/querieTypes";
 import {
   atualizarWebhook,
   atualizarWebhookPix,
+  buscarIdPromessa,
+  inserirComprovante,
+  inserirHistorico,
   inserirWebhook,
 } from "./services/queries";
 
@@ -39,17 +42,19 @@ const saveLog = (data: any): void => {
   }
 };
 
-app.post("/webhook", (req: Request, res: Response) => {
+app.post("/webhook", async (req: Request, res: Response) => {
   const data: SantanderPayment = req.body;
   console.log("Recebido pelo webhook:", JSON.stringify(data, null, 2));
 
-  const { participantCode, txId, payedValue, paymentDate } = data;
-  const txIdPix = txId ? txId.substring(3) : "";
+  const { participantCode, txId, payedValue, paymentDate, clientNumber } = data;
+  const iddevedor = clientNumber;
+  const idboleto = participantCode;
+  const txIdPix = txId ? txId.substring(0, 3) : ""; // revisar
   console.log("Tipo de pagamento identificado:", txIdPix);
 
   try {
-    const inserirNovoWebhook = inserirWebhook({
-      idboleto: participantCode,
+    const inserirNovoWebhook = await inserirWebhook({
+      idboleto,
       txid: txId,
       valor: payedValue,
       horario: paymentDate,
@@ -67,6 +72,29 @@ app.post("/webhook", (req: Request, res: Response) => {
     }
 
     console.log("✏️ Novo webhook inserido no banco:", inserirNovoWebhook);
+
+    const idpromessa = await buscarIdPromessa(idboleto);
+
+    if (!idpromessa || idpromessa === 0) {
+      console.error(
+        "❌ Nenhuma promessa encontrada para o idboleto:",
+        idboleto
+      );
+      return res
+        .status(404)
+        .json({ error: "Nenhuma promessa encontrada para o idboleto." });
+    }
+
+    const inserirNovoComprovante = await inserirComprovante(idpromessa);
+    console.log(
+      "✏️ Novo comprovante inserido no banco:",
+      inserirNovoComprovante
+    );
+
+    const inserirNovoHistorico = await inserirHistorico(iddevedor, idboleto);
+    console.log("✏️ Novo historico inserido no banco:", inserirNovoHistorico);
+
+    // NAO TEM idboleto NO PIX
 
     if (txIdPix === "PIX") {
       const atualizarNovoWebhookPix = atualizarWebhookPix(txId);

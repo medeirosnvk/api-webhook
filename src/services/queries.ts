@@ -60,7 +60,7 @@ export const atualizarWebhookPix = async (txid: string): Promise<any[]> => {
   return results;
 };
 
-export const atualizarWebhook = async (idboleto: string): Promise<any[]> => {
+export const atualizarWebhook = async (idboleto: number): Promise<any[]> => {
   const query = `
     UPDATE 
       webhook_santander ws,
@@ -82,6 +82,71 @@ export const atualizarWebhook = async (idboleto: string): Promise<any[]> => {
   `;
 
   const results = await executeQueryNew(query, [idboleto]);
+
+  return results;
+};
+
+export const buscarIdPromessa = async (idboleto: number): Promise<number> => {
+  const query = `
+    SELECT 
+      idpromessa,
+      iddevedor
+    FROM
+      promessa p
+    WHERE
+      idboleto = ?
+  `;
+
+  const results = await executeQueryNew(query, [idboleto]);
+
+  return results;
+};
+
+export const inserirComprovante = async (
+  idpromessa: number
+): Promise<any[]> => {
+  const query = `
+    INSERT ignore INTO comprovante_recebido 
+      idpromessa,
+      idresponsavel
+    )
+    VALUES (
+      ?,
+      2144
+    )
+  `;
+
+  const results = await executeQueryNew(query, [idpromessa]);
+
+  return results;
+};
+
+export const inserirHistorico = async (
+  iddevedor: number,
+  idboleto: number
+): Promise<any[]> => {
+  const query = `
+    INSERT INTO historico (
+      idresponsavel,
+      iddevedor,
+      historico,
+      responsavel,
+      inclusao,
+      horaincl,
+      ramal
+    )
+    VALUES (
+      2144,
+      ?,
+      'BANCO SANTANDER INFORMA PAGAMENTO DO BOLETO Nº ?.',
+      'WEBHOOK',
+      curdate(),
+      curtime(),
+      0
+    )
+  `;
+
+  const results = await executeQueryNew(query, [iddevedor, idboleto]);
 
   return results;
 };
