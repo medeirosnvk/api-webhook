@@ -9,7 +9,7 @@ module.exports = {
         NODE_ENV: "production",
       },
       pre_deploy: {
-        pre: "yarn install && yarn build",
+        pre: "yarn install --production=false && yarn build",
       },
     },
   ],
