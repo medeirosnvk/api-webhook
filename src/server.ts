@@ -74,6 +74,7 @@ app.post("/webhook", async (req: Request, res: Response) => {
     console.log("✏️ Novo webhook inserido no banco.");
 
     const idpromessa = await buscarIdPromessa(idboleto);
+    console.log("🔍 idpromessa encontrado:", idpromessa);
 
     if (!idpromessa || idpromessa === 0) {
       console.error(
