@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "app-santander",
+      name: "api-santander",
       script: "yarn",
       args: "dev", // Execute o script "dev" definido em package.json usando npm
     },
