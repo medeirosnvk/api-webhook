@@ -86,7 +86,7 @@ export const atualizarWebhook = async (idboleto: number): Promise<any[]> => {
   return results;
 };
 
-export const buscarIdPromessa = async (idboleto: number): Promise<number> => {
+export const buscarIdPromessa = async (idboleto: number): Promise<any[]> => {
   const query = `
     SELECT 
       idpromessa,
