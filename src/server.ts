@@ -44,6 +44,7 @@ const saveLog = (data: any): void => {
 
 app.post("/webhook", async (req: Request, res: Response) => {
   const data: SantanderPayment = req.body;
+  saveLog(data);
   console.log("Recebido pelo webhook:", JSON.stringify(data, null, 2));
 
   const { participantCode, txId, payedValue, paymentDate, clientNumber } = data;
@@ -80,7 +81,7 @@ app.post("/webhook", async (req: Request, res: Response) => {
     if (!idpromessa || idpromessa === 0) {
       console.error(
         "❌ Nenhuma promessa encontrada para o idboleto:",
-        idboleto
+        idboleto,
       );
       return res
         .status(404)
@@ -165,7 +166,7 @@ app.post("/webhook-old", (req: Request, res: Response) => {
   }
 });
 
-app.get("/logs", (_req: Request, res: Response) => {
+app.get("/webhook/logs", (_req: Request, res: Response) => {
   try {
     if (fs.existsSync(logFilePath)) {
       const logs = fs.readFileSync(logFilePath, "utf8");
