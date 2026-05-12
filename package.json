@@ -4,9 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "compile": "tsc && node dist/src/server.ts",
-    "start": "ts-node-dev --inspect --transpile-only --ignore-watch node_modules --respawn src/server.ts",
-    "dev": "nodemon --exec ts-node src/index.ts"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --transpile-only --ignore-watch node_modules --respawn src/server.ts"
   },
   "type": "commonjs",
   "dependencies": {
