@@ -20,7 +20,10 @@ let defaultPool: Pool = mysql.createPool({
   database: process.env.MY_SQL_DATABASE,
   connectionLimit: parseInt(process.env.MY_SQL_CONNECTION_LIMIT || "10"),
   charset: process.env.MY_SQL_CHARSET,
-  connectTimeout: 3600000,
+  connectTimeout: 30000,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
+  idleTimeout: 60000,
 });
 
 export async function executeQueryNew(
@@ -40,10 +43,16 @@ export async function executeQueryNew(
     } catch (error: any) {
       const isDeadlock =
         error?.code === "ER_LOCK_DEADLOCK" || error?.errno === 1213;
-      if (isDeadlock && attempt < maxAttempts) {
-        const backoff = 50 * attempt + Math.floor(Math.random() * 50);
+      const isConnectionLost =
+        error?.code === "PROTOCOL_CONNECTION_LOST" ||
+        error?.code === "ECONNRESET" ||
+        error?.code === "ETIMEDOUT" ||
+        error?.fatal === true;
+      const shouldRetry = isDeadlock || isConnectionLost;
+      if (shouldRetry && attempt < maxAttempts) {
+        const backoff = 100 * attempt + Math.floor(Math.random() * 100);
         console.warn(
-          `Deadlock detectado (tentativa ${attempt}/${maxAttempts}). Retentando em ${backoff}ms...`
+          `Erro recuperável (${error?.code}) na tentativa ${attempt}/${maxAttempts}. Retentando em ${backoff}ms...`
         );
         await new Promise((r) => setTimeout(r, backoff));
         continue;
