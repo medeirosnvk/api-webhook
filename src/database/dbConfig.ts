@@ -28,21 +28,28 @@ export async function executeQueryNew(
   params: any[] = [],
   customConfig?: PoolOptions
 ): Promise<any> {
-  let poolToUse: Pool;
+  const poolToUse: Pool = customConfig
+    ? mysql.createPool({ ...customConfig })
+    : defaultPool;
 
-  if (customConfig) {
-    poolToUse = mysql.createPool({
-      ...customConfig,
-    });
-  } else {
-    poolToUse = defaultPool;
-  }
-
-  try {
-    const [rows] = await poolToUse.execute(query, params);
-    return rows;
-  } catch (error) {
-    console.error("Erro ao executar consulta:", error);
-    throw error;
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const [rows] = await poolToUse.execute(query, params);
+      return rows;
+    } catch (error: any) {
+      const isDeadlock =
+        error?.code === "ER_LOCK_DEADLOCK" || error?.errno === 1213;
+      if (isDeadlock && attempt < maxAttempts) {
+        const backoff = 50 * attempt + Math.floor(Math.random() * 50);
+        console.warn(
+          `Deadlock detectado (tentativa ${attempt}/${maxAttempts}). Retentando em ${backoff}ms...`
+        );
+        await new Promise((r) => setTimeout(r, backoff));
+        continue;
+      }
+      console.error("Erro ao executar consulta:", error);
+      throw error;
+    }
   }
 }

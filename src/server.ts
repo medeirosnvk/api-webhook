@@ -88,21 +88,22 @@ app.post("/webhook", async (req: Request, res: Response) => {
         .json({ error: "Nenhuma promessa encontrada para o idboleto." });
     }
 
-    const inserirNovoComprovante = await inserirComprovante(idpromessa);
+    await inserirComprovante(idpromessa);
     console.log("✏️ Novo comprovante inserido no banco.");
 
-    const inserirNovoHistorico = await inserirHistorico(iddevedor, idboleto);
-    console.log("✏️ Novo historico inserido no banco.");
-
     // NAO TEM idboleto NO PIX
-
+    // Atualiza o status do devedor ANTES de inserir histórico para evitar
+    // deadlock entre o UPDATE em devedor e o INSERT em historico (FK em iddevedor).
     if (txIdPix === "PIX") {
-      const atualizarNovoWebhookPix = atualizarWebhookPix(txId);
+      await atualizarWebhookPix(txId);
       console.log("✏️ Novo webhook PIX atualizado no banco.");
     } else {
-      const atualizarNovoWebhook = atualizarWebhook(participantCode);
+      await atualizarWebhook(participantCode);
       console.log("✏️ Novo webhook atualizado no banco.");
     }
+
+    await inserirHistorico(iddevedor, idboleto);
+    console.log("✏️ Novo historico inserido no banco.");
 
     console.log("✅ Processamento do webhook concluído com sucesso!");
     return res.status(200).json({
