@@ -4,6 +4,7 @@ import express from "express";
 import type { Request, Response } from "express";
 import bodyParser from "body-parser";
 import fs from "fs";
+import path from "path";
 import { LogEntry, SantanderPayment } from "./types/querieTypes";
 import {
   atualizarWebhook,
@@ -26,17 +27,27 @@ const port = process.env.PORT;
 app.use(express.json());
 app.use(bodyParser.json());
 
-const logFilePath = "logs.json";
+const logsDir = "logs";
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const getLogFilePath = (date: string): string =>
+  path.join(logsDir, date, "logs.json");
+
+const todayStr = (): string => new Date().toISOString().slice(0, 10);
 
 const saveLog = (data: any): void => {
   try {
+    const date = todayStr();
+    const filePath = getLogFilePath(date);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+
     let logs: LogEntry[] = [];
-    if (fs.existsSync(logFilePath)) {
-      const fileData = fs.readFileSync(logFilePath, "utf8");
+    if (fs.existsSync(filePath)) {
+      const fileData = fs.readFileSync(filePath, "utf8");
       logs = fileData ? JSON.parse(fileData) : [];
     }
     logs.push({ timestamp: new Date().toISOString(), data });
-    fs.writeFileSync(logFilePath, JSON.stringify(logs, null, 2));
+    fs.writeFileSync(filePath, JSON.stringify(logs, null, 2));
   } catch (error) {
     console.error("Erro ao salvar log:", error);
   }
@@ -178,14 +189,41 @@ app.post("/webhook-old", (req: Request, res: Response) => {
   }
 });
 
-app.get("/webhook/logs", (_req: Request, res: Response) => {
+app.get("/webhook/logs", (req: Request, res: Response) => {
   try {
-    if (fs.existsSync(logFilePath)) {
-      const logs = fs.readFileSync(logFilePath, "utf8");
-      return res.status(200).json(JSON.parse(logs));
-    } else {
+    const dateParam = req.query.date as string | undefined;
+
+    if (dateParam && !dateRegex.test(dateParam)) {
+      return res
+        .status(400)
+        .json({ error: "Parâmetro 'date' inválido. Use o formato YYYY-MM-DD." });
+    }
+
+    if (!fs.existsSync(logsDir)) {
       return res.status(200).json([]);
     }
+
+    if (dateParam) {
+      const filePath = getLogFilePath(dateParam);
+      if (!fs.existsSync(filePath)) {
+        return res.status(200).json([]);
+      }
+      const logs = fs.readFileSync(filePath, "utf8");
+      return res.status(200).json(logs ? JSON.parse(logs) : []);
+    }
+
+    const dates = fs
+      .readdirSync(logsDir)
+      .filter((entry) => dateRegex.test(entry))
+      .sort();
+    const all: LogEntry[] = [];
+    for (const date of dates) {
+      const filePath = getLogFilePath(date);
+      if (!fs.existsSync(filePath)) continue;
+      const fileData = fs.readFileSync(filePath, "utf8");
+      if (fileData) all.push(...JSON.parse(fileData));
+    }
+    return res.status(200).json(all);
   } catch (error) {
     console.error("Erro ao ler logs:", error);
     return res.status(500).json({ error: "Erro ao ler os logs" });
