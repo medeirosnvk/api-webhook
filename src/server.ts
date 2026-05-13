@@ -75,17 +75,28 @@ app.post("/webhook", async (req: Request, res: Response) => {
     console.log("✏️ Novo webhook inserido no banco.");
 
     const idPromessaResult = await buscarIdPromessa(idboleto);
+
+    if (!idPromessaResult || idPromessaResult.length === 0) {
+      console.warn(
+        "⚠️ Nenhuma promessa encontrada para o idboleto:",
+        idboleto,
+      );
+      return res.status(200).json({
+        message: "Webhook recebido, mas não há promessa associada ao idboleto.",
+      });
+    }
+
     const { idpromessa } = idPromessaResult[0];
     console.log("🔍 idpromessa encontrado:", idpromessa);
 
     if (!idpromessa || idpromessa === 0) {
-      console.error(
-        "❌ Nenhuma promessa encontrada para o idboleto:",
+      console.warn(
+        "⚠️ idpromessa inválido para o idboleto:",
         idboleto,
       );
-      return res
-        .status(404)
-        .json({ error: "Nenhuma promessa encontrada para o idboleto." });
+      return res.status(200).json({
+        message: "Webhook recebido, mas idpromessa é inválido.",
+      });
     }
 
     await inserirComprovante(idpromessa);
