@@ -59,6 +59,14 @@ app.post("/webhook", async (req: Request, res: Response) => {
   console.log("Recebido pelo webhook:", JSON.stringify(data, null, 2));
 
   const { participantCode, txId, payedValue, paymentDate, clientNumber } = data;
+
+  if (participantCode === undefined || participantCode === null) {
+    console.log("ℹ️ Payload sem participantCode — provável validação de URL.");
+    return res.status(200).json({
+      message: "Webhook ativo. Payload de validação recebido.",
+    });
+  }
+
   const iddevedor = clientNumber;
   const idboleto = participantCode;
   const txIdPix = txId ? txId.substring(0, 3) : ""; // revisar
@@ -143,6 +151,14 @@ app.get("/webhook", async (req: Request, res: Response) => {
   console.log("Recebido pelo webhook:", JSON.stringify(data, null, 2));
 
   const { participantCode, txId, payedValue, paymentDate, clientNumber } = data;
+
+  if (participantCode === undefined || participantCode === null) {
+    console.log("ℹ️ Payload sem participantCode — provável validação de URL.");
+    return res.status(200).json({
+      message: "Webhook ativo. Payload de validação recebido.",
+    });
+  }
+
   const iddevedor = clientNumber;
   const idboleto = participantCode;
   const txIdPix = txId ? txId.substring(0, 3) : ""; // revisar
