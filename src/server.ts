@@ -137,6 +137,90 @@ app.post("/webhook", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/webhook", async (req: Request, res: Response) => {
+  const data: SantanderPayment = req.body;
+  saveLog(data);
+  console.log("Recebido pelo webhook:", JSON.stringify(data, null, 2));
+
+  const { participantCode, txId, payedValue, paymentDate, clientNumber } = data;
+  const iddevedor = clientNumber;
+  const idboleto = participantCode;
+  const txIdPix = txId ? txId.substring(0, 3) : ""; // revisar
+  console.log("Tipo de pagamento identificado:", txIdPix);
+
+  try {
+    const inserirNovoWebhook = await inserirWebhook({
+      idboleto,
+      txid: txId,
+      valor: payedValue,
+      horario: paymentDate,
+    });
+
+    if (
+      !inserirNovoWebhook ||
+      inserirNovoWebhook === null ||
+      inserirNovoWebhook === undefined
+    ) {
+      console.error("❌ Erro ao tentar inserir webhook no banco de dados.");
+      return res
+        .status(500)
+        .json({ error: "Erro ao tentar inserir webhook no banco de dados." });
+    }
+
+    console.log("✏️ Novo webhook inserido no banco.");
+
+    const idPromessaResult = await buscarIdPromessa(idboleto);
+
+    if (!idPromessaResult || idPromessaResult.length === 0) {
+      console.warn(
+        "⚠️ Nenhuma promessa encontrada para o idboleto:",
+        idboleto,
+      );
+      return res.status(200).json({
+        message: "Webhook recebido, mas não há promessa associada ao idboleto.",
+      });
+    }
+
+    const { idpromessa } = idPromessaResult[0];
+    console.log("🔍 idpromessa encontrado:", idpromessa);
+
+    if (!idpromessa || idpromessa === 0) {
+      console.warn(
+        "⚠️ idpromessa inválido para o idboleto:",
+        idboleto,
+      );
+      return res.status(200).json({
+        message: "Webhook recebido, mas idpromessa é inválido.",
+      });
+    }
+
+    await inserirComprovante(idpromessa);
+    console.log("✏️ Novo comprovante inserido no banco.");
+
+    // NAO TEM idboleto NO PIX
+    // Atualiza o status do devedor ANTES de inserir histórico para evitar
+    // deadlock entre o UPDATE em devedor e o INSERT em historico (FK em iddevedor).
+    if (txIdPix === "PIX") {
+      await atualizarWebhookPix(txId);
+      console.log("✏️ Novo webhook PIX atualizado no banco.");
+    } else {
+      await atualizarWebhook(participantCode);
+      console.log("✏️ Novo webhook atualizado no banco.");
+    }
+
+    await inserirHistorico(iddevedor, idboleto);
+    console.log("✏️ Novo historico inserido no banco.");
+
+    console.log("✅ Processamento do webhook concluído com sucesso!");
+    return res.status(200).json({
+      message: "Processamento do webhook concluído com sucesso.",
+    });
+  } catch (error) {
+    console.error("❌ Erro ao processar o webhook:", error);
+    return res.status(500).json({ error: "Erro ao processar o webhook" });
+  }
+});
+
 app.post("/webhook-old", (req: Request, res: Response) => {
   const data = req.body;
 
