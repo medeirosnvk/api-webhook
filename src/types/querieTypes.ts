@@ -6,6 +6,7 @@ export interface WebhookSantander {
 }
 
 export interface WebhookPixSantander {
+  idboleto: number;
   endToEndId: string;
   txid: string;
   valor: string;

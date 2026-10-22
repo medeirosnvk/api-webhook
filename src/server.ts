@@ -68,7 +68,24 @@ const processarPixRecebido = async (pix: PixRecebido): Promise<void> => {
     return;
   }
 
+  // Boleto pago pelo QR Code (txid "YKP" + 13 dígitos + idboleto(8) + ...):
+  // só registra com o idboleto real; comprovante, status e histórico ficam com
+  // o webhook de boleto, que usa ws.idboleto para atualizar o devedor.
+  const boletoMatch = /^YKP\d{13}(\d{8})\d{9}$/.exec(txid);
+  if (boletoMatch) {
+    await inserirWebhookPix({
+      idboleto: Number(boletoMatch[1]),
+      endToEndId,
+      txid,
+      valor,
+      horario,
+    });
+    console.log("✏️ Webhook PIX de boleto registrado para o txid:", txid);
+    return;
+  }
+
   const inserirNovoWebhook = await inserirWebhookPix({
+    idboleto: 0,
     endToEndId,
     txid,
     valor,
