@@ -1,9 +1,17 @@
 module.exports = {
   apps: [
     {
-      name: "app-santander",
-      script: "yarn",
-      args: "dev", // Execute o script "dev" definido em package.json usando npm
+      name: "api-santander",
+      script: "dist/server.js",
+      cwd: __dirname,
+      instances: 1,
+      exec_mode: "fork",
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "512M",
+      env: {
+        NODE_ENV: "production",
+      },
     },
   ],
 };
