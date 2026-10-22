@@ -33,11 +33,11 @@ export const inserirWebhook = async (
   return results;
 };
 
-// PIX não tem boleto: idboleto fica 0, igual ao webhook PHP legado.
+// PIX de QR Code próprio não tem boleto: idboleto vem 0, igual ao webhook PHP legado.
 export const inserirWebhookPix = async (
   data: WebhookPixSantander
 ): Promise<any> => {
-  const { endToEndId, txid, valor, horario } = data;
+  const { idboleto, endToEndId, txid, valor, horario } = data;
 
   const query = `
     INSERT ignore INTO webhook_santander (
@@ -48,7 +48,7 @@ export const inserirWebhookPix = async (
       horario
       )
     VALUES (
-      0,
+      ?,
       ?,
       ?,
       ?,
@@ -57,6 +57,7 @@ export const inserirWebhookPix = async (
   `;
 
   const results = await executeQueryNew(query, [
+    idboleto,
     endToEndId,
     txid,
     valor,
