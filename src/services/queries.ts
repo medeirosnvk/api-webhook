@@ -1,4 +1,4 @@
-import { WebhookSantander } from "../types/querieTypes";
+import { WebhookPixSantander, WebhookSantander } from "../types/querieTypes";
 import { executeQueryNew } from "../database/dbConfig";
 
 export const inserirWebhook = async (
@@ -33,26 +33,50 @@ export const inserirWebhook = async (
   return results;
 };
 
-export const atualizarWebhookPix = async (txid: string): Promise<any[]> => {
+// PIX não tem boleto: idboleto fica 0, igual ao webhook PHP legado.
+export const inserirWebhookPix = async (
+  data: WebhookPixSantander
+): Promise<any> => {
+  const { endToEndId, txid, valor, horario } = data;
+
   const query = `
-    UPDATE
-      webhook_santander ws,
-      qrcode b,
-      acordo a,
-      promessa p,
-      devedor d,
+    INSERT ignore INTO webhook_santander (
+      idboleto,
+      endToEndId,
+      txid,
+      valor,
+      horario
+      )
+    VALUES (
+      0,
+      ?,
+      ?,
+      ?,
+      ?
+    )
+  `;
+
+  const results = await executeQueryNew(query, [
+    endToEndId,
+    txid,
+    valor,
+    horario,
+  ]);
+
+  return results;
+};
+
+export const buscarPromessaPix = async (txid: string): Promise<any[]> => {
+  const query = `
+    SELECT
+      pp.idpromessa,
+      p.iddevedor
+    FROM
       promessa_pix pp
-    SET
-      d.idstatus = 1654
+      INNER JOIN promessa p ON p.idpromessa = pp.idpromessa
     WHERE
-      pp.txid = ws.txid
-      and pp.idpromessa = p.idpromessa
-      and b.iddevedor = d.iddevedor
-      and p.idacordo = a.idacordo
-      and a.boletagem > 0
-      and b.idlote > 0
-      and d.idstatus <> 1654
-      and ws.txid = ?
+      pp.txid = ?
+    LIMIT 1
   `;
 
   const results = await executeQueryNew(query, [txid]);
@@ -147,6 +171,36 @@ export const inserirHistorico = async (
   `;
 
   const results = await executeQueryNew(query, [iddevedor, idboleto]);
+
+  return results;
+};
+
+export const inserirHistoricoPix = async (
+  iddevedor: number,
+  txid: string
+): Promise<any[]> => {
+  const query = `
+    INSERT INTO historico (
+      idresponsavel,
+      iddevedor,
+      historico,
+      responsavel,
+      inclusao,
+      horaincl,
+      ramal
+    )
+    VALUES (
+      2144,
+      ?,
+      CONCAT('BANCO SANTANDER INFORMA PAGAMENTO DO QRCODE ', ?, '.'),
+      'WEBHOOK',
+      curdate(),
+      curtime(),
+      0
+    )
+  `;
+
+  const results = await executeQueryNew(query, [iddevedor, txid]);
 
   return results;
 };
