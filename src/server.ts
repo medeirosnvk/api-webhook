@@ -5,14 +5,21 @@ import type { Request, Response } from "express";
 import bodyParser from "body-parser";
 import fs from "fs";
 import path from "path";
-import { LogEntry, SantanderPayment } from "./types/querieTypes";
+import {
+  LogEntry,
+  PixRecebido,
+  SantanderPayment,
+  SantanderPixNotification,
+} from "./types/querieTypes";
 import {
   atualizarWebhook,
-  atualizarWebhookPix,
   buscarIdPromessa,
+  buscarPromessaPix,
   inserirComprovante,
   inserirHistorico,
+  inserirHistoricoPix,
   inserirWebhook,
+  inserirWebhookPix,
 } from "./services/queries";
 
 dotenv.config();
@@ -53,7 +60,81 @@ const saveLog = (data: any): void => {
   }
 };
 
+const processarPixRecebido = async (pix: PixRecebido): Promise<void> => {
+  const { endToEndId, txid, valor, horario, devolucoes } = pix;
+
+  if (devolucoes && devolucoes.length > 0) {
+    console.log("ℹ️ Notificação de devolução PIX ignorada:", txid);
+    return;
+  }
+
+  const inserirNovoWebhook = await inserirWebhookPix({
+    endToEndId,
+    txid,
+    valor,
+    horario,
+  });
+
+  // INSERT ignore + UNIQUE(txid): notificação repetida não é reprocessada.
+  if (!inserirNovoWebhook || inserirNovoWebhook.affectedRows === 0) {
+    console.log("ℹ️ Webhook PIX já registrado para o txid:", txid);
+    return;
+  }
+
+  console.log("✏️ Novo webhook PIX inserido no banco.");
+
+  const promessaResult = await buscarPromessaPix(txid);
+
+  if (!promessaResult || promessaResult.length === 0) {
+    console.warn("⚠️ Nenhuma promessa_pix encontrada para o txid:", txid);
+    return;
+  }
+
+  const { idpromessa, iddevedor } = promessaResult[0];
+  console.log("🔍 idpromessa encontrado:", idpromessa);
+
+  await inserirComprovante(idpromessa);
+  console.log("✏️ Novo comprovante PIX inserido no banco.");
+
+  await inserirHistoricoPix(iddevedor, txid);
+  console.log("✏️ Novo historico PIX inserido no banco.");
+};
+
+// Santander não reenvia a notificação e considera arriscado responder em mais
+// de 1s, então respondemos 200 antes de processar.
+const receberWebhookPix = async (req: Request, res: Response) => {
+  const data: SantanderPixNotification = req.body;
+  saveLog(data);
+  console.log("Recebido pelo webhook PIX:", JSON.stringify(data, null, 2));
+
+  res.status(200).json({ message: "Notificação PIX recebida." });
+
+  if (!Array.isArray(data?.pix)) {
+    console.log("ℹ️ Payload PIX sem lista 'pix' — provável validação de URL.");
+    return;
+  }
+
+  for (const pix of data.pix) {
+    try {
+      await processarPixRecebido(pix);
+    } catch (error) {
+      console.error("❌ Erro ao processar PIX txid:", pix?.txid, error);
+    }
+  }
+};
+
+// Padrão BACEN: o PSP acrescenta "/pix" à URL cadastrada.
+app.post("/webhook/pix", receberWebhookPix);
+
+app.get("/webhook/pix", (_req: Request, res: Response) => {
+  return res.status(200).json({ message: "Webhook PIX ativo." });
+});
+
 app.post("/webhook", async (req: Request, res: Response) => {
+  if (Array.isArray(req.body?.pix)) {
+    return receberWebhookPix(req, res);
+  }
+
   const data: SantanderPayment = req.body;
   saveLog(data);
   console.log("Recebido pelo webhook:", JSON.stringify(data, null, 2));
@@ -69,8 +150,6 @@ app.post("/webhook", async (req: Request, res: Response) => {
 
   const iddevedor = clientNumber;
   const idboleto = participantCode;
-  const txIdPix = txId ? txId.substring(0, 3) : ""; // revisar
-  console.log("Tipo de pagamento identificado:", txIdPix);
 
   try {
     const inserirNovoWebhook = await inserirWebhook({
@@ -121,16 +200,10 @@ app.post("/webhook", async (req: Request, res: Response) => {
     await inserirComprovante(idpromessa);
     console.log("✏️ Novo comprovante inserido no banco.");
 
-    // NAO TEM idboleto NO PIX
     // Atualiza o status do devedor ANTES de inserir histórico para evitar
     // deadlock entre o UPDATE em devedor e o INSERT em historico (FK em iddevedor).
-    if (txIdPix === "PIX") {
-      await atualizarWebhookPix(txId);
-      console.log("✏️ Novo webhook PIX atualizado no banco.");
-    } else {
-      await atualizarWebhook(participantCode);
-      console.log("✏️ Novo webhook atualizado no banco.");
-    }
+    await atualizarWebhook(participantCode);
+    console.log("✏️ Novo webhook atualizado no banco.");
 
     await inserirHistorico(iddevedor, idboleto);
     console.log("✏️ Novo historico inserido no banco.");
@@ -161,8 +234,6 @@ app.get("/webhook", async (req: Request, res: Response) => {
 
   const iddevedor = clientNumber;
   const idboleto = participantCode;
-  const txIdPix = txId ? txId.substring(0, 3) : ""; // revisar
-  console.log("Tipo de pagamento identificado:", txIdPix);
 
   try {
     const inserirNovoWebhook = await inserirWebhook({
@@ -213,16 +284,10 @@ app.get("/webhook", async (req: Request, res: Response) => {
     await inserirComprovante(idpromessa);
     console.log("✏️ Novo comprovante inserido no banco.");
 
-    // NAO TEM idboleto NO PIX
     // Atualiza o status do devedor ANTES de inserir histórico para evitar
     // deadlock entre o UPDATE em devedor e o INSERT em historico (FK em iddevedor).
-    if (txIdPix === "PIX") {
-      await atualizarWebhookPix(txId);
-      console.log("✏️ Novo webhook PIX atualizado no banco.");
-    } else {
-      await atualizarWebhook(participantCode);
-      console.log("✏️ Novo webhook atualizado no banco.");
-    }
+    await atualizarWebhook(participantCode);
+    console.log("✏️ Novo webhook atualizado no banco.");
 
     await inserirHistorico(iddevedor, idboleto);
     console.log("✏️ Novo historico inserido no banco.");

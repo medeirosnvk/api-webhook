@@ -5,6 +5,35 @@ export interface WebhookSantander {
   horario: string;
 }
 
+export interface WebhookPixSantander {
+  endToEndId: string;
+  txid: string;
+  valor: string;
+  horario: string;
+}
+
+export type PixDevolucao = {
+  rtrId: string;
+  id: string;
+  valor: string;
+  horario: { solicitacao: string; liquidacao?: string };
+  status: string;
+  motivo?: string;
+};
+
+export type PixRecebido = {
+  endToEndId: string;
+  txid: string;
+  valor: string;
+  horario: string;
+  infoPagador?: string;
+  devolucoes?: PixDevolucao[];
+};
+
+export type SantanderPixNotification = {
+  pix: PixRecebido[];
+};
+
 export interface LogEntry {
   timestamp: string;
   data: any;
